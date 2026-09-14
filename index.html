@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Присоединиться — 12-ТЭК</title>
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="index.html">
+      <span class="mark">12</span>
+      <span>
+        <strong>Форма 12-ТЭК</strong>
+        <small>Отчёт о расходе топливно-энергетических ресурсов</small>
+      </span>
+    </a>
+    <nav>
+      <a href="index.html">Ученику</a>
+      <a href="teacher.html">Преподавателю</a>
+    </nav>
+  </header>
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">Каждому ученику — своя страница</p>
+      <h1>Присоединиться к работе</h1>
+      <p class="lead">
+        Введите фамилию и имя. Откроется личная страница: выберите виды топлива,
+        заполните расход — и скачайте готовую таблицу Excel по форме 12-ТЭК.
+      </p>
+      <form class="join" id="join-form">
+        <label>
+          Фамилия и имя
+          <input name="name" id="join-name" required maxlength="120" placeholder="Иванова Анна" autofocus>
+        </label>
+        <button type="submit">Открыть мою страницу</button>
+      </form>
+      <p class="hint">Сохраните ссылку на страницу — на этом устройстве данные останутся.</p>
+    </section>
+    <section class="cards">
+      <article>
+        <h3>1. Выбрать топливо</h3>
+        <p>Отметьте только те виды, которые есть у вашей организации: газ, дрова, торф, мазут и другие.</p>
+      </article>
+      <article>
+        <h3>2. Ввести расход</h3>
+        <p>Количество можно вводить в литрах, килограммах или кубометрах — программа сама пересчитает.</p>
+      </article>
+      <article>
+        <h3>3. Скачать Excel</h3>
+        <p>Получите заполненные таблицы 1 и 2 формы 12-ТЭК и лист с расчётом коэффициентов.</p>
+      </article>
+    </section>
+  </main>
+  <footer class="foot">Практикум по заполнению формы 12-ТЭК (Белстат).</footer>
+  <script src="static/catalog.js"></script>
+  <script src="static/engine.js"></script>
+  <script>
+    document.getElementById("join-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("join-name").value.trim();
+      if (!name) return;
+      const id = Engine.token();
+      Engine.upsertStudent(id, name, {});
+      location.href = "s.html?t=" + encodeURIComponent(id);
+    });
+  </script>
+</body>
+</html>
