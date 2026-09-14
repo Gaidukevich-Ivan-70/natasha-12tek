@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Форма 12-ТЭК — администратор</title>
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="application-name" content="Форма 12-ТЭК">
+  <meta name="apple-mobile-web-app-title" content="12-ТЭК">
+  <meta name="theme-color" content="#12345A">
+  <meta name="description" content="Журнал администратора практикума 12-ТЭК">
+  <meta property="og:title" content="Форма 12-ТЭК — администратор">
+  <meta property="og:image" content="https://forma-12tek.pages.dev/icon.png">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../icon.png" type="image/png" sizes="512x512">
+  <link rel="apple-touch-icon" href="../icon.png">
+  <link rel="manifest" href="../site.webmanifest">
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="../index.html">
+      <span class="mark">12</span>
+      <span>
+        <strong>Форма 12-ТЭК</strong>
+        <small>Отчёт о расходе топливно-энергетических ресурсов</small>
+      </span>
+    </a>
+    <nav>
+      <a href="../index.html">Ученику</a>
+      <a href="./">Администратору</a>
+    </nav>
+  </header>
+  <main class="wrap">
+    <section class="panel">
+      <div class="row-head">
+        <div>
+          <h1>Журнал администратора</h1>
+          <p class="muted">Создайте страницу ученика и отправьте ему ссылку. Журнал запоминается на этом устройстве.</p>
+        </div>
+      </div>
+      <form class="inline" id="add-form">
+        <input id="add-name" required maxlength="120" placeholder="Фамилия и имя ученика">
+        <button type="submit">Создать страницу</button>
+      </form>
+    </section>
+    <section class="panel" id="list"></section>
+  </main>
+  <footer class="foot">Практикум по заполнению формы 12-ТЭК (Белстат).</footer>
+  <script src="../static/catalog.js"></script>
+  <script src="../static/engine.js"></script>
+  <script>
+    function pageLink(token) {
+      return location.origin + "/s.html?t=" + encodeURIComponent(token);
+    }
+    function render() {
+      const students = Engine.allStudents();
+      const box = document.getElementById("list");
+      if (!students.length) {
+        box.innerHTML = "<p class=\"muted\">Пока никого нет. Создайте первую страницу или пусть ученик присоединится по своей ссылке.</p>";
+        return;
+      }
+      box.innerHTML = `<table class="plain">
+        <thead><tr><th>Ученик</th><th>Личная ссылка</th><th>Сохранено</th><th></th></tr></thead>
+        <tbody>${students.map((s) => `
+          <tr>
+            <td><a href="../s.html?t=${encodeURIComponent(s.token)}">${s.name}</a></td>
+            <td><div class="copy-row">
+              <input readonly value="${pageLink(s.token)}" id="link-${s.token}">
+              <button type="button" class="btn tiny" data-copy="${s.token}">Копировать</button>
+            </div></td>
+            <td>${s.updated_at || "ещё не заходил"}</td>
+            <td><button type="button" class="btn danger tiny" data-del="${s.token}">Удалить</button></td>
+          </tr>`).join("")}</tbody></table>`;
+      box.querySelectorAll("[data-copy]").forEach((btn) => {
+        btn.onclick = () => navigator.clipboard.writeText(document.getElementById("link-" + btn.dataset.copy).value);
+      });
+      box.querySelectorAll("[data-del]").forEach((btn) => {
+        btn.onclick = () => {
+          if (confirm("Удалить страницу ученика на этом устройстве?")) {
+            Engine.deleteStudent(btn.dataset.del);
+            render();
+          }
+        };
+      });
+    }
+    document.getElementById("add-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("add-name").value.trim();
+      if (!name) return;
+      Engine.upsertStudent(Engine.token(), name, {});
+      document.getElementById("add-name").value = "";
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>
