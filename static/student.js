@@ -40,8 +40,8 @@
 <nav class="steps">
   <a href="#org">1. Реквизиты</a>
   <a href="#fuels">2. Топливо</a>
-  <a href="#amounts">3. Расход</a>
-  <a href="#energy">4. Энергия</a>
+  <a href="#heat">3. Тепло</a>
+  <a href="#elec">4. Электричество</a>
   <a href="#result">5. Отчёт</a>
 </nav>
 <section class="panel" id="org">
@@ -61,32 +61,29 @@
   </div>
 </section>
 <section class="panel" id="fuels">
-  <h2>Какие виды топлива есть у организации</h2>
-  <p class="muted">Отметьте только используемые. В раздел I не включают топливо в ДВС и сырьё на переработку.</p>
+  <h2>Топливо</h2>
+  <p class="muted">Разверните группу из указаний Белстата и отметьте любой вид — организация может выбрать любой. После отметки раскроются поля расхода. В раздел I не включают топливо в ДВС и сырьё на переработку.</p>
   <div class="search-row"><input id="fuel-search" placeholder="Найти вид топлива…"></div>
+  <div id="picked-fuels"></div>
   <div id="fuel-groups"></div>
 </section>
-<section class="panel" id="amounts">
-  <h2>Расход выбранного топлива</h2>
-  <p class="muted">Выберите удобную единицу. Программа сама переведёт в официальную и в тонны условного топлива.</p>
-  <div id="fuel-forms" class="empty-box">Сначала выберите хотя бы один вид топлива.</div>
-</section>
-<section class="panel" id="energy">
-  <h2>Тепловая и электрическая энергия</h2>
-  <p class="muted">Единицу можно выбрать самим. По правилам формы: строки 110 + 120 + 130 = 140 + 150.</p>
+<section class="panel energy-panel heat" id="heat">
+  <h2>Тепловая энергия</h2>
+  <p class="muted">Отдельный раздел формы. Единицу выберите сами — в отчёт всё пересчитается в Гкал. По правилам: строки 110 + 120 + 130 = 140 + 150.</p>
   <div class="unit-bar">
-    <label>Тепло вводить в<select id="heat-unit"></select></label>
-    <label>Электричество вводить в<select id="elec-unit"></select></label>
+    <label>В какой единице вводите тепло<select id="heat-unit"></select></label>
+    <p class="unit-hint" id="heat-head">В форму попадёт в Гкал</p>
   </div>
-  <div class="table-wrap">
-    <table class="grid" id="energy-table">
-      <thead>
-        <tr><th rowspan="2">Показатель</th><th rowspan="2">Код</th><th colspan="2" id="heat-head">Тепло</th><th colspan="2" id="elec-head">Электричество</th></tr>
-        <tr><th>этот год</th><th>прошлый год</th><th>этот год</th><th>прошлый год</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <div id="heat-rows" class="energy-list"></div>
+</section>
+<section class="panel energy-panel elec" id="elec">
+  <h2>Электрическая энергия</h2>
+  <p class="muted">Отдельный раздел формы. Единицу выберите сами — в отчёт всё пересчитается в тыс. кВт·ч. По правилам: строки 110 + 120 + 130 = 140 + 150.</p>
+  <div class="unit-bar">
+    <label>В какой единице вводите электричество<select id="elec-unit"></select></label>
+    <p class="unit-hint" id="elec-head">В форму попадёт в тыс. кВт·ч</p>
   </div>
+  <div id="elec-rows" class="energy-list"></div>
 </section>
 <section class="panel" id="result">
   <h2>Готовый отчёт</h2>
@@ -120,6 +117,10 @@
     units: Object.assign({ heat: "gcal", elec: "thous_kwh" }, INITIAL.units || {}),
   };
 
+  const openGroups = new Set(
+    GROUPS.filter((g) => ALL_FUELS.some((f) => f.group === g && state.selected.has(f.id)))
+  );
+
   function fuelById(id) { return ALL_FUELS.find((f) => f.id === id); }
   function emptyFuel(id) {
     const f = fuelById(id) || {};
@@ -149,6 +150,79 @@
     });
   }
 
+  function numField(obj, key, placeholder) {
+    return `<input type="number" step="any" min="0" data-fk="${key}" placeholder="${placeholder || ""}" value="${obj[key] ?? ""}">`;
+  }
+
+  function fuelFieldsHtml(f, d) {
+    const tags = [];
+    if (f.local) tags.push("местное");
+    if (f.renewable) tags.push("возобновляемое");
+    const unitOpts = (f.units || []).map((u) => `<option value="${u.id}" ${d.unit === u.id ? "selected" : ""}>${u.label}</option>`).join("");
+    const needsDensity = f.unit_kind === "liquid" && (d.unit === "l" || d.unit === "m3");
+    return `
+      <div class="fuel-meta">
+        <p>В форме считается в ${f.unit}. Средний коэффициент К = ${Number(f.k).toLocaleString("ru-RU", { maximumFractionDigits: 6 })}</p>
+        ${f.note ? `<p class="note">${f.note}</p>` : ""}
+        <div class="tags">${tags.map((t) => `<span>${t}</span>`).join("")}</div>
+      </div>
+      <div class="grid-3">
+        <label>В какой единице вводите<select data-fk="unit">${unitOpts}</select></label>
+        <label>Количество, этот год ${numField(d, "qty_year")}</label>
+        <label>Количество, прошлый год ${numField(d, "qty_prev")}</label>
+        ${needsDensity ? `<label>Плотность, кг/л ${numField(d, "density", f.default_density)}</label>` : ""}
+        <label>Свой коэффициент К ${numField(d, "custom_k", "если известен")}</label>
+        ${f.kind === "peat" ? `<label>Фактическая влажность, % ${numField(d, "moisture")}</label>` : ""}
+        ${f.id === "peat_wood" ? `<label>Доля древесины, % ${numField(d, "wood_share")}</label>` : ""}
+        <label class="check"><input type="checkbox" data-fk="imported" ${d.imported ? "checked" : ""}> Поступило по импорту (не местное)</label>
+      </div>
+      <p class="conv-hint" data-hint="${f.id}"></p>
+      <details class="extra-split">
+        <summary>Разбивка по строкам формы, т у.т. (необязательно)</summary>
+        <div class="grid-3">
+          <label>111 производственные нужды, этот год ${numField(d, "prod_year")}</label>
+          <label>111 прошлый год ${numField(d, "prod_prev")}</label>
+          <label>112 на выработку тепла и э/э, этот год ${numField(d, "heat_year")}</label>
+          <label>112 прошлый год ${numField(d, "heat_prev")}</label>
+          <label>130 населению, этот год ${numField(d, "pop_year")}</label>
+          <label>130 прошлый год ${numField(d, "pop_prev")}</label>
+        </div>
+      </details>`;
+  }
+
+  function bindFuelFields(root, f, d) {
+    root.querySelectorAll("[data-fk]").forEach((el) => {
+      const key = el.dataset.fk;
+      const handler = () => {
+        d[key] = el.type === "checkbox" ? el.checked : el.value;
+        if (key === "unit") {
+          renderGroups();
+          scheduleSave();
+          return;
+        }
+        scheduleSave();
+        refreshPreview();
+      };
+      el.addEventListener(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input", handler);
+    });
+  }
+
+  function renderPicked() {
+    const box = document.getElementById("picked-fuels");
+    if (!state.selected.size) {
+      box.className = "picked-bar empty";
+      box.textContent = "Пока ничего не выбрано. Разверните группу ниже и отметьте любой вид топлива.";
+      return;
+    }
+    box.className = "picked-bar";
+    const chips = [...state.selected].map((id) => {
+      const f = fuelById(id);
+      if (!f) return "";
+      return `<span class="chip on">${f.name}</span>`;
+    }).join("");
+    box.innerHTML = `<p class="picked-label">Выбрано: ${state.selected.size}</p><div class="chips">${chips}</div>`;
+  }
+
   function renderGroups() {
     const q = (document.getElementById("fuel-search").value || "").toLowerCase();
     const box = document.getElementById("fuel-groups");
@@ -156,98 +230,49 @@
     GROUPS.forEach((group) => {
       const items = ALL_FUELS.filter((f) => f.group === group && f.name.toLowerCase().includes(q));
       if (!items.length) return;
+      const selectedHere = items.filter((f) => state.selected.has(f.id)).length;
       const wrap = document.createElement("details");
       wrap.className = "fuel-group";
-      wrap.open = ["Нефть и газ", "Торф", "Древесина", "Нефтепродукты"].includes(group) || items.some((f) => state.selected.has(f.id));
-      wrap.innerHTML = `<summary><h3>${group}</h3><span>${items.length}</span></summary>`;
+      wrap.open = openGroups.has(group) || !!q;
+      wrap.innerHTML = `<summary><h3>${group}</h3><span>${items.length} видов${selectedHere ? " · выбрано " + selectedHere : ""}</span></summary>`;
+      wrap.addEventListener("toggle", () => {
+        if (wrap.open) openGroups.add(group);
+        else openGroups.delete(group);
+      });
       const list = document.createElement("div");
-      list.className = "chips";
+      list.className = "fuel-list";
       items.forEach((f) => {
-        const label = document.createElement("label");
-        label.className = "chip" + (state.selected.has(f.id) ? " on" : "");
-        label.innerHTML = `<input type="checkbox" ${state.selected.has(f.id) ? "checked" : ""}><span>${f.name}</span><em>${f.unit}</em>`;
-        label.querySelector("input").addEventListener("change", (ev) => {
+        const on = state.selected.has(f.id);
+        if (on && !state.fuels[f.id]) state.fuels[f.id] = emptyFuel(f.id);
+        const d = state.fuels[f.id] || emptyFuel(f.id);
+        if (!d.unit) d.unit = f.default_unit;
+        const pick = document.createElement("div");
+        pick.className = "fuel-pick" + (on ? " on" : "");
+        pick.innerHTML = `
+          <label class="fuel-pick-head">
+            <input type="checkbox" ${on ? "checked" : ""}>
+            <span>${f.name}</span>
+            <em>${f.unit}</em>
+          </label>
+          ${on ? `<div class="fuel-body">${fuelFieldsHtml(f, d)}</div>` : ""}`;
+        pick.querySelector("input").addEventListener("change", (ev) => {
           if (ev.target.checked) {
             state.selected.add(f.id);
             if (!state.fuels[f.id]) state.fuels[f.id] = emptyFuel(f.id);
-          } else state.selected.delete(f.id);
-          label.classList.toggle("on", ev.target.checked);
-          renderForms();
+            openGroups.add(group);
+          } else {
+            state.selected.delete(f.id);
+          }
+          renderGroups();
           scheduleSave();
         });
-        list.appendChild(label);
+        if (on) bindFuelFields(pick, f, d);
+        list.appendChild(pick);
       });
       wrap.appendChild(list);
       box.appendChild(wrap);
     });
-  }
-
-  function numField(obj, key, placeholder) {
-    return `<input type="number" step="any" min="0" data-fk="${key}" placeholder="${placeholder || ""}" value="${obj[key] ?? ""}">`;
-  }
-
-  function renderForms() {
-    const box = document.getElementById("fuel-forms");
-    if (!state.selected.size) {
-      box.className = "empty-box";
-      box.textContent = "Сначала выберите хотя бы один вид топлива.";
-      refreshPreview();
-      return;
-    }
-    box.className = "fuel-forms";
-    box.innerHTML = "";
-    [...state.selected].forEach((id) => {
-      const f = fuelById(id);
-      if (!f) return;
-      if (!state.fuels[id]) state.fuels[id] = emptyFuel(id);
-      const d = state.fuels[id];
-      if (!d.unit) d.unit = f.default_unit;
-      const card = document.createElement("article");
-      card.className = "fuel-card";
-      const tags = [];
-      if (f.local) tags.push("местное");
-      if (f.renewable) tags.push("возобновляемое");
-      const unitOpts = (f.units || []).map((u) => `<option value="${u.id}" ${d.unit === u.id ? "selected" : ""}>${u.label}</option>`).join("");
-      const needsDensity = f.unit_kind === "liquid" && (d.unit === "l" || d.unit === "m3");
-      card.innerHTML = `
-        <header><div>
-          <h3>${f.name}</h3>
-          <p>В форме считается в ${f.unit}. Средний коэффициент К = ${Number(f.k).toLocaleString("ru-RU", { maximumFractionDigits: 6 })}</p>
-          ${f.note ? `<p class="note">${f.note}</p>` : ""}
-        </div><div class="tags">${tags.map((t) => `<span>${t}</span>`).join("")}</div></header>
-        <div class="grid-3">
-          <label>В какой единице вводите<select data-fk="unit">${unitOpts}</select></label>
-          <label>Количество, этот год ${numField(d, "qty_year")}</label>
-          <label>Количество, прошлый год ${numField(d, "qty_prev")}</label>
-          ${needsDensity ? `<label>Плотность, кг/л ${numField(d, "density", f.default_density)}</label>` : ""}
-          <label>Свой коэффициент К ${numField(d, "custom_k", "если известен")}</label>
-          ${f.kind === "peat" ? `<label>Фактическая влажность, % ${numField(d, "moisture")}</label>` : ""}
-          ${f.id === "peat_wood" ? `<label>Доля древесины, % ${numField(d, "wood_share")}</label>` : ""}
-          <label class="check"><input type="checkbox" data-fk="imported" ${d.imported ? "checked" : ""}> Поступило по импорту (не местное)</label>
-        </div>
-        <p class="conv-hint" data-hint="${id}"></p>
-        <details><summary>Разбивка по строкам формы, т у.т. (необязательно)</summary>
-          <div class="grid-3">
-            <label>111 производственные нужды, этот год ${numField(d, "prod_year")}</label>
-            <label>111 прошлый год ${numField(d, "prod_prev")}</label>
-            <label>112 на выработку тепла и э/э, этот год ${numField(d, "heat_year")}</label>
-            <label>112 прошлый год ${numField(d, "heat_prev")}</label>
-            <label>130 населению, этот год ${numField(d, "pop_year")}</label>
-            <label>130 прошлый год ${numField(d, "pop_prev")}</label>
-          </div>
-        </details>`;
-      card.querySelectorAll("[data-fk]").forEach((el) => {
-        const key = el.dataset.fk;
-        const handler = () => {
-          d[key] = el.type === "checkbox" ? el.checked : el.value;
-          if (key === "unit") { renderForms(); scheduleSave(); return; }
-          scheduleSave();
-          refreshPreview();
-        };
-        el.addEventListener(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input", handler);
-      });
-      box.appendChild(card);
-    });
+    renderPicked();
     refreshPreview();
   }
 
@@ -268,27 +293,33 @@
   function updateEnergyHeads() {
     const heat = ENERGY_UNITS.heat.find((u) => u.id === state.units.heat);
     const elec = ENERGY_UNITS.elec.find((u) => u.id === state.units.elec);
-    document.getElementById("heat-head").textContent = "Тепло, " + (heat ? heat.label : "Гкал");
-    document.getElementById("elec-head").textContent = "Электричество, " + (elec ? elec.label : "тыс. кВт·ч");
+    document.getElementById("heat-head").textContent = heat && heat.id !== "gcal"
+      ? "Вводите в " + heat.label + " — в форму попадёт в Гкал"
+      : "В форму попадёт в Гкал";
+    document.getElementById("elec-head").textContent = elec && elec.id !== "thous_kwh"
+      ? "Вводите в " + elec.label + " — в форму попадёт в тыс. кВт·ч"
+      : "В форму попадёт в тыс. кВт·ч";
   }
 
-  function renderEnergy() {
-    const tb = document.querySelector("#energy-table tbody");
-    tb.innerHTML = "";
+  function renderEnergyKind(kind) {
+    const box = document.getElementById(kind + "-rows");
+    box.innerHTML = "";
     ENERGY_ROWS.forEach((row) => {
-      if (!row.heat && !row.elec) return;
-      const heat = state.heat[row.code] || {};
-      const elec = state.elec[row.code] || {};
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.name}</td><td>${row.code}</td>
-        <td>${row.heat ? `<input type="number" step="any" data-en="heat" data-code="${row.code}" data-when="year" value="${heat.year ?? ""}">` : `<span class="x">×</span>`}</td>
-        <td>${row.heat ? `<input type="number" step="any" data-en="heat" data-code="${row.code}" data-when="prev" value="${heat.prev ?? ""}">` : `<span class="x">×</span>`}</td>
-        <td>${row.elec ? `<input type="number" step="any" data-en="elec" data-code="${row.code}" data-when="year" value="${elec.year ?? ""}">` : `<span class="x">×</span>`}</td>
-        <td>${row.elec ? `<input type="number" step="any" data-en="elec" data-code="${row.code}" data-when="prev" value="${elec.prev ?? ""}">` : `<span class="x">×</span>`}</td>`;
-      tb.appendChild(tr);
+      if (!row[kind]) return;
+      const data = state[kind][row.code] || {};
+      const item = document.createElement("div");
+      const nested = /^(из него|из них)/i.test(row.name);
+      item.className = "energy-row" + (nested ? " sub" : "");
+      item.innerHTML = `
+        <div class="energy-name">
+          <strong>${row.name}</strong>
+          <span class="code">строка ${row.code}</span>
+        </div>
+        <label>Этот год<input type="number" step="any" min="0" data-en="${kind}" data-code="${row.code}" data-when="year" value="${data.year ?? ""}"></label>
+        <label>Прошлый год<input type="number" step="any" min="0" data-en="${kind}" data-code="${row.code}" data-when="prev" value="${data.prev ?? ""}"></label>`;
+      box.appendChild(item);
     });
-    tb.querySelectorAll("input").forEach((el) => {
+    box.querySelectorAll("input").forEach((el) => {
       el.addEventListener("input", () => {
         const block = el.dataset.en;
         const code = el.dataset.code;
@@ -357,7 +388,7 @@
   fillOrg();
   fillEnergyUnits();
   renderGroups();
-  renderForms();
-  renderEnergy();
+  renderEnergyKind("heat");
+  renderEnergyKind("elec");
   refreshPreview();
 })();

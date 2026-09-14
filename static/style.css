@@ -110,28 +110,57 @@ button, .btn {
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .search-row { margin: 12px 0 18px; }
 .search-row input { width: min(420px, 100%); }
-.fuel-group { margin-bottom: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: #fbfdff; }
-.fuel-group summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; list-style: none; }
+.fuel-group { margin-bottom: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 4px 12px 8px; background: #fbfdff; }
+.fuel-group summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; padding: 10px 4px; }
 .fuel-group summary::-webkit-details-marker { display: none; }
-.fuel-group summary h3 { margin: 0; }
-.fuel-group summary span { color: var(--muted); font-size: 12px; }
-.fuel-group .chips { margin-top: 10px; }
+.fuel-group summary::before { content: "▸"; color: var(--brand-2); font-size: 14px; width: 16px; flex: none; }
+.fuel-group[open] summary::before { content: "▾"; }
+.fuel-group summary h3 { margin: 0; flex: 1; }
+.fuel-group summary span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.fuel-list { display: flex; flex-direction: column; gap: 8px; padding: 0 0 8px; }
+.fuel-pick {
+  border: 1px solid var(--line); border-radius: 12px; background: #fff;
+}
+.fuel-pick.on { background: #f3fbf7; border-color: #7dbead; }
+.fuel-pick-head {
+  flex-direction: row; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer; color: var(--ink); font-size: 14px;
+}
+.fuel-pick-head em { margin-left: auto; color: var(--muted); font-style: normal; font-size: 12px; }
+.fuel-body { padding: 12px 12px 14px; border-top: 1px dashed var(--line); }
+.fuel-meta p { margin: 0 0 6px; color: var(--muted); font-size: 13px; }
+.extra-split { margin-top: 10px; }
+.extra-split summary { cursor: pointer; color: var(--brand); font-size: 13px; }
+.picked-bar {
+  margin: 0 0 14px; padding: 12px 14px; border-radius: 12px;
+  background: #ecf8f1; border: 1px solid #b7e0c4;
+}
+.picked-bar.empty {
+  background: #f7fafc; border-style: dashed; border-color: var(--line); color: var(--muted);
+}
+.picked-label { margin: 0 0 8px; font-size: 13px; color: #166534; font-weight: 600; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
-  display: flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 8px;
   border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px;
-  background: #fff; cursor: pointer; color: var(--ink);
+  background: #fff; color: var(--ink);
 }
 .chip em { color: var(--muted); font-style: normal; font-size: 12px; }
 .chip.on { background: #e6f4ef; border-color: #7dbead; }
 .empty-box {
   padding: 24px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); text-align: center;
 }
-.fuel-card {
-  border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; background: #fbfdff;
+.energy-panel.heat { border-left: 5px solid #c9852a; }
+.energy-panel.elec { border-left: 5px solid #2e75b6; }
+.energy-list { display: flex; flex-direction: column; gap: 8px; }
+.energy-row {
+  display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; align-items: end;
+  padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
 }
-.fuel-card header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.fuel-card p { margin: 4px 0; color: var(--muted); font-size: 13px; }
+.energy-row.sub { margin-left: 18px; background: #f7fafc; }
+.energy-name strong { display: block; color: var(--ink); font-size: 14px; }
+.energy-name .code { color: var(--muted); font-size: 12px; }
+.unit-hint { margin: 22px 0 0; color: var(--muted); font-size: 13px; }
 .note { color: #8a5a12 !important; }
 .tags span {
   display: inline-block; background: var(--ok); color: #166534;
@@ -181,10 +210,13 @@ select {
   border-radius: 8px;
   padding: 8px 10px;
 }
+.conv-hint:empty { display: none; }
 .foot { text-align: center; color: var(--muted); padding: 0 16px 28px; font-size: 13px; }
 
 @media (max-width: 860px) {
   .cards, .grid-2, .grid-3, .student-head, .row-head { grid-template-columns: 1fr; display: block; }
+  .energy-row { grid-template-columns: 1fr; }
+  .energy-row.sub { margin-left: 0; }
   .top { flex-direction: column; align-items: start; }
   .hero { padding: 22px; }
 }
