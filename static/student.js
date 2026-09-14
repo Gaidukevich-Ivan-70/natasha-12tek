@@ -16,7 +16,7 @@
     rec = Engine.upsertStudent(TOKEN, params.get("n") || "Ученик", {});
   }
   const INITIAL = rec.payload || {};
-  document.title = rec.name + " — 12-ТЭК";
+  document.title = rec.name + " — Форма 12-ТЭК";
 
   const share = location.origin + location.pathname.replace(/[^/]+$/, "") + "s.html?t=" + encodeURIComponent(TOKEN);
 

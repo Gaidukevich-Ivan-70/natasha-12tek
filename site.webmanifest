@@ -1,0 +1,17 @@
+{
+  "name": "Форма 12-ТЭК",
+  "short_name": "12-ТЭК",
+  "description": "Практикум по отчёту о расходе топливно-энергетических ресурсов",
+  "lang": "ru",
+  "display": "standalone",
+  "background_color": "#12345A",
+  "theme_color": "#12345A",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
