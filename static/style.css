@@ -53,7 +53,7 @@ a { color: var(--brand-2); }
   box-shadow: var(--shadow);
 }
 .hero { padding: 36px; }
-.panel { padding: 24px; margin-bottom: 18px; }
+.panel { padding: 24px; margin-bottom: 18px; scroll-margin-top: 56px; }
 .eyebrow { text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-size: 12px; font-weight: 700; margin: 0 0 8px; }
 h1, h2, h3 { margin: 0 0 10px; }
 .lead { font-size: 18px; line-height: 1.5; color: var(--muted); max-width: 720px; }
